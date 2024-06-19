@@ -1,4 +1,8 @@
 
+using ApplicationForm.API.Repository;
+using Microsoft.Azure.Cosmos;
+using System.Text.Json.Serialization;
+
 namespace ApplicationForm.API
 {
     public class Program
@@ -6,13 +10,41 @@ namespace ApplicationForm.API
         public static void Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
+            
+            var configuration = builder.Configuration;
 
-            // Add services to the container.
+            builder.Services.AddSingleton((provider) =>
+            {
+                var endpointUri = configuration["CosmosDb:EndpointUri"];
+                var primaryKey = configuration["CosmosDb:PrimaryKey"];
+                var databaseName = configuration["CosmosDb:DatabaseName"];
 
-            builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+                var cosmosClientOptions = new CosmosClientOptions
+                {
+                    ApplicationName = databaseName
+                };
+
+                var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
+
+                var cosmosClient = new CosmosClient(endpointUri, primaryKey, cosmosClientOptions);
+
+                cosmosClient.ClientOptions.ConnectionMode = ConnectionMode.Direct;
+
+                return cosmosClient;
+            });
+
+
+            builder.Services.AddControllers()
+                            .AddJsonOptions(options =>
+                            {
+                                options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+                            });
+            builder.Services.AddAutoMapper(typeof(Program).Assembly);
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddScoped<IProgramApplicationFormRepository, ProgramApplicationFormRepository>();
+
 
             var app = builder.Build();
 
