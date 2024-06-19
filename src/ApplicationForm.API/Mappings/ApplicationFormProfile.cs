@@ -2,29 +2,27 @@
 using ApplicationForm.API.Data.Models;
 using AutoMapper;
 
-namespace ApplicationForm.API.Mappings
+public class MappingProfile : Profile
 {
-    public class MappingProfile : Profile
+    public MappingProfile()
     {
-        public MappingProfile()
-        {
-            CreateMap<CreateProgramApplicationFormRequestDto, ProgramApplicationForm>()
-                .ForMember(dest => dest.Questions, opt => opt.MapFrom(src => src.Questions))
-                .ReverseMap();
+        CreateMap<ProgramApplicationForm, FormResponseDto>();
+        CreateMap<FormQuestion, FormQuestionResponseDto>();
+        CreateMap<QuestionOption, QuestionOptionResponseDto>();
 
-            CreateMap<CreateFormQuestionRequestDto, FormQuestion>()
-                .ForMember(dest => dest.Options, opt => opt.MapFrom(src => src.Options))
-                .ReverseMap();
+        CreateMap<CreateProgramApplicationFormRequestDto, ProgramApplicationForm>()
+            .ForMember(dest => dest.Questions, opt => opt.Ignore());
+        CreateMap<CreateFormQuestionRequestDto, FormQuestion>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore())
+            .ForMember(dest => dest.Options, opt => opt.Ignore());
+        CreateMap<CreateQuestionOptionRequestDto, QuestionOption>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore());
 
-            CreateMap<CreateQuestionOptionRequestDto, QuestionOption>()
-                .ReverseMap();
+        CreateMap<ProgramApplicationForm, CreateProgramApplicationFormRequestDto>();
+        CreateMap<FormQuestion, CreateFormQuestionRequestDto>();
+        CreateMap<QuestionOption, CreateQuestionOptionRequestDto>();
 
-            CreateMap<CandidateResponseDto, CandidateResponse>()
-                .ReverseMap();
-
-            CreateMap<QuestionResponseDto, QuestionResponse>()
-                .ReverseMap();
-        }
-
+        CreateMap<CandidateResponseDto, CandidateResponse>();
+        CreateMap<QuestionResponseDto, QuestionResponse>();
     }
 }

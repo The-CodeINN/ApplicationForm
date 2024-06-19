@@ -1,32 +1,68 @@
 ﻿using ApplicationForm.API.Data.Models;
+using Microsoft.Azure.Cosmos;
+using Microsoft.Azure.Cosmos.Linq;
 
 namespace ApplicationForm.API.Repository
 {
     public class ProgramApplicationFormRepository : IProgramApplicationFormRepository
     {
-        public Task<ProgramApplicationForm> CreateFormAsync(ProgramApplicationForm form)
+        private readonly CosmosClient _cosmosClient;
+        private readonly IConfiguration _configuration;
+        private readonly Container _formContainer;
+        private readonly Container _responseContainer;
+
+        public ProgramApplicationFormRepository(CosmosClient cosmosClient, IConfiguration configuration)
         {
-            throw new NotImplementedException();
+            _cosmosClient = cosmosClient;
+            _configuration = configuration;
+            var databaseName = _configuration["CosmosDb:DatabaseName"];
+            _formContainer = _cosmosClient.GetContainer(databaseName, "Forms");
+            _responseContainer = _cosmosClient.GetContainer(databaseName, "Responses");
         }
 
-        public Task<ProgramApplicationForm> GetFormByIdAsync(string formId)
+        public async Task<ProgramApplicationForm> CreateFormAsync(ProgramApplicationForm form)
         {
-            throw new NotImplementedException();
+            var response = await _formContainer.CreateItemAsync(form);
+            return response.Resource;
         }
 
-        public Task<IEnumerable<CandidateResponse>> GetResponsesByFormIdAsync(string formId)
+        public async Task<ProgramApplicationForm> GetFormByIdAsync(string formId)
         {
-            throw new NotImplementedException();
+            var query = _formContainer.GetItemLinqQueryable<ProgramApplicationForm>()
+                                                   .Where(a => a.Id == formId)
+                                                   .AsQueryable();
+
+            var iterator = query.ToFeedIterator();
+            var results = await iterator.ReadNextAsync();
+            return results.FirstOrDefault();
         }
 
-        public Task SaveCandidateResponseAsync(CandidateResponse response)
+        public async Task<IEnumerable<CandidateResponse>> GetResponsesByFormIdAsync(string formId)
         {
-            throw new NotImplementedException();
+            var query = _responseContainer.GetItemLinqQueryable<CandidateResponse>()
+                                                      .Where(r => r.FormId == formId)
+                                                      .AsQueryable();
+
+            var iterator = query.ToFeedIterator();
+            var results = new List<CandidateResponse>();
+
+            while (iterator.HasMoreResults)
+            {
+                var currentResultSet = await iterator.ReadNextAsync();
+                results.AddRange(currentResultSet);
+            }
+
+            return results;
         }
 
-        public Task UpdateFormAsync(ProgramApplicationForm form)
+        public async Task SaveCandidateResponseAsync(CandidateResponse response)
         {
-            throw new NotImplementedException();
+            await _responseContainer.CreateItemAsync(response);
+        }
+
+        public async Task UpdateFormAsync(ProgramApplicationForm form)
+        {
+            await _formContainer.UpsertItemAsync(form);
         }
     }
 }
