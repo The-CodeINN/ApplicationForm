@@ -33,6 +33,16 @@ namespace ApplicationForm.API
                 return cosmosClient;
             });
 
+            builder.Services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    builder.AllowAnyOrigin()
+                           .AllowAnyMethod()
+                           .AllowAnyHeader();
+                });
+            });
+
 
             builder.Services.AddControllers()
                             .AddJsonOptions(options =>
@@ -47,7 +57,7 @@ namespace ApplicationForm.API
 
 
             var app = builder.Build();
-
+            app.UseCors();
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
